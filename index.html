@@ -38,14 +38,15 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
+
+// Проверяем, работаем ли мы в Hatch
+const isHatchEnvironment = typeof hatch !== 'undefined';
+const { useStoredState } = isHatchEnvironment ? hatch : { useStoredState: (key, defaultValue) => React.useState(defaultValue) };
+
 // Telegram WebApp API integration
 const getTelegramWebApp = () => {
   return window.Telegram?.WebApp;
 };
-        
-// Проверяем, работаем ли мы в Hatch
-const isHatchEnvironment = typeof hatch !== 'undefined';
-const { useStoredState } = isHatchEnvironment ? hatch : { useStoredState: (key, defaultValue) => React.useState(defaultValue) };
 
 // Вынесем ChatInput полностью за пределы основного компонента
 const ChatInput = React.memo(({ matchId, onSendMessage }) => {
@@ -149,7 +150,6 @@ const DatingApp = () => {
         console.log('- platform:', tg.platform);
         console.log('- version:', tg.version);
         console.log('- user данные:', tg.initDataUnsafe?.user);
-        
         try {
           tg.ready();
           tg.expand();
@@ -2300,6 +2300,7 @@ const DatingApp = () => {
     </>
   );
 };
+
         
         // Telegram WebApp API integration
         const getTelegramWebApp = () => {
@@ -2368,18 +2369,5 @@ const DatingApp = () => {
           // НА ОБЫЧНЫЕ useState
           
           const [currentView, setCurrentView] = useState('discover');
-          const [currentProfile, setCurrentProfile] = useState(0);
-          // И ТАК ДАЛЕЕ...
-          
-          // ВЕСЬ ОСТАЛЬНОЙ КОД ВАШЕГО КОМПОНЕНТА
-          
-          return (
-            // ВАШ JSX КОД
-          );
-        };
-
-        // 👇 В САМОМ КОНЦЕ ДОБАВЬТЕ ЭТУ СТРОЧКУ:
-        ReactDOM.render(<DatingApp />, document.getElementById('root'));
-    </script>
-</body>
-</html>
+          const [currentProfile, setCur
+ReactDOM.render(<DatingApp />, document.getElementById('root'));
