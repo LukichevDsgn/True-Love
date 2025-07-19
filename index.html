@@ -41,14 +41,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Проверяем, работаем ли мы в Hatch
-const isHatchEnvironment = typeof hatch !== 'undefined';
-const { useStoredState } = isHatchEnvironment ? hatch : { useStoredState: (key, defaultValue) => React.useState(defaultValue) };
-
 // Telegram WebApp API integration
 const getTelegramWebApp = () => {
   return window.Telegram?.WebApp;
 };
+
+// Проверяем, работаем ли мы в Hatch
+const isHatchEnvironment = typeof hatch !== 'undefined';
+const { useStoredState } = isHatchEnvironment ? hatch : { useStoredState: (key, defaultValue) => React.useState(defaultValue) };
 
 // Вынесем ChatInput полностью за пределы основного компонента
 const ChatInput = React.memo(({ matchId, onSendMessage }) => {
