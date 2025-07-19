@@ -294,7 +294,7 @@ const DatingApp = () => {
     }
   };
   const [likedProfiles, setLikedProfiles] = useState([]);
-  const [matches, setMatches] = useStoredState('matches', []);
+  const [matches, setMatches] = React.useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [chatMessages, setChatMessages] = useStoredState('chatMessages', {});
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
