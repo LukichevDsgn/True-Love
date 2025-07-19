@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>True Love - Telegram Mini App</title>
     
-    <!-- Telegram WebApp Script -->
+    <!-- Telegram WebApp Script - ОБЯЗАТЕЛЬНО ПЕРВЫМ -->
     <script src="https://telegram.org/js/telegram-web-app.js?58"></script>
     
-    <!-- React и ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel для транспиляции JSX -->
+    <!-- Babel для JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- Tailwind CSS -->
@@ -38,74 +38,6 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
-        // Загружаем Telegram WebApp скрипт если он еще не загружен
-        if (!window.Telegram) {
-          const script = document.createElement('script');
-          script.src = 'https://telegram.org/js/telegram-web-app.js?58';
-          script.async = true;
-          document.head.appendChild(script);
-        }
-
-        // Telegram WebApp API integration
-        const getTelegramWebApp = () => {
-          return window.Telegram?.WebApp;
-        };
-
-        // Вынесем ChatInput полностью за пределы основного компонента
-        const ChatInput = React.memo(({ matchId, onSendMessage }) => {
-          const [message, setMessage] = useState('');
-          
-          const handleSend = useCallback(() => {
-            const messageText = message.trim();
-            console.log('🔄 ChatInput handleSend:', { matchId, message: messageText });
-            
-            if (messageText) {
-              console.log('✅ Отправляем сообщение:', messageText);
-              onSendMessage(matchId, messageText);
-              setMessage('');
-              console.log('🧹 Очищен input');
-            } else {
-              console.log('❌ Пустое сообщение, не отправляем');
-            }
-          }, [matchId, message, onSendMessage]);
-
-          const handleKeyPress = useCallback((e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleSend();
-            }
-          }, [handleSend]);
-
-          const handleChange = useCallback((e) => {
-            setMessage(e.target.value);
-          }, []);
-
-          return (
-            <div className="bg-white p-4 border-t border-gray-100">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Напишите сообщение..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-pink-500"
-                  autoComplete="off"
-                />
-                <button
-                  onClick={handleSend}
-                  className="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          );
-        });
-
-        // Основной компонент
 
 // Telegram WebApp API integration
 const getTelegramWebApp = () => {
@@ -2432,7 +2364,6 @@ const DatingApp = () => {
   );
 };
 
-        // Рендерим приложение
         ReactDOM.render(<DatingApp />, document.getElementById('root'));
     </script>
 </body>
