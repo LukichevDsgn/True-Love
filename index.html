@@ -1,3 +1,5 @@
+Вам нужно заменить комментарий / Уберите: import React, { useState, useEffect, useCallback } from 'react'; и далее на ваш код из React компонента, но с несколькими изменениями:
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -37,6 +39,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
+
 
 // Проверяем, работаем ли мы в Hatch
 const isHatchEnvironment = typeof hatch !== 'undefined';
@@ -225,6 +228,28 @@ const DatingApp = () => {
         return;
       }
 
+      // ПРИОРИТЕТ: Сначала проверяем Telegram WebApp данные
+      if (tg && tg.initDataUnsafe?.user) {
+        console.log('✅ Найдены данные пользователя в Telegram WebApp');
+        const telegramUser = {
+          id: tg.initDataUnsafe.user.id,
+          first_name: tg.initDataUnsafe.user.first_name,
+          last_name: tg.initDataUnsafe.user.last_name,
+          username: tg.initDataUnsafe.user.username,
+          language_code: tg.initDataUnsafe.user.language_code,
+          is_premium: tg.initDataUnsafe.user.is_premium || false
+        };
+        
+        console.log('👤 Авторизуем пользователя из Telegram:', telegramUser);
+        setUserProfile(telegramUser);
+        setIsAuthenticated(true);
+        setAuthError(null); // Убираем ошибку для реального Telegram пользователя
+        return;
+      }
+
+      // Если нет данных пользователя в Telegram, пробуем бэкенд
+      console.log('⚠️ Данные пользователя в Telegram не найдены, пробуем бэкенд...');
+      
       // Получаем initData из Telegram SDK
       let initDataRaw = '';
       
@@ -238,12 +263,12 @@ const DatingApp = () => {
         if (tg && tg.initData) {
           initDataRaw = tg.initData;
         } else {
-          throw new Error('InitData недоступны');
+          throw new Error('InitData недоступны и пользователь не найден в Telegram');
         }
       }
 
       if (!initDataRaw) {
-        throw new Error('Не удалось получить initData');
+        throw new Error('Не удалось получить initData и нет данных пользователя');
       }
 
       console.log('📤 Отправляем запрос авторизации на сервер...');
@@ -263,7 +288,7 @@ const DatingApp = () => {
       }
 
       const userData = await response.json();
-      console.log('✅ Пользователь авторизован:', userData);
+      console.log('✅ Пользователь авторизован через бэкенд:', userData);
 
       // Сохраняем данные пользователя
       setIsAuthenticated(true);
@@ -279,39 +304,21 @@ const DatingApp = () => {
     } catch (error) {
       console.error('❌ Ошибка авторизации:', error);
       setAuthError(error.message);
-      setIsAuthenticated(false);
-
-      // Fallback: используем данные из Telegram напрямую для разработки
-      if (tg && tg.initDataUnsafe?.user) {
-        console.log('🔄 Используем fallback авторизацию для разработки');
-        const fallbackUser = {
-          id: tg.initDataUnsafe.user.id,
-          first_name: tg.initDataUnsafe.user.first_name,
-          last_name: tg.initDataUnsafe.user.last_name,
-          username: tg.initDataUnsafe.user.username,
-          language_code: tg.initDataUnsafe.user.language_code,
-          is_premium: tg.initDataUnsafe.user.is_premium || false
-        };
-        
-        setUserProfile(fallbackUser);
-        setIsAuthenticated(true);
-        setAuthError('Режим разработки (без бэкенда)');
-      } else {
-        // Полный fallback для тестирования без Telegram
-        console.log('🔄 Полный fallback - создаем тестового пользователя');
-        const testUser = {
-          id: Date.now(),
-          first_name: 'Кирилл',
-          last_name: 'Лукичев',
-          username: 'kirill_test',
-          language_code: 'ru',
-          is_premium: false
-        };
-        
-        setUserProfile(testUser);
-        setIsAuthenticated(true);
-        setAuthError('Тестовый режим (без Telegram)');
-      }
+      
+      // Полный fallback для тестирования без Telegram и бэкенда
+      console.log('🔄 Полный fallback - создаем тестового пользователя');
+      const testUser = {
+        id: Date.now(),
+        first_name: 'Кирилл',
+        last_name: 'Лукичев',
+        username: 'kirill_test',
+        language_code: 'ru',
+        is_premium: false
+      };
+      
+      setUserProfile(testUser);
+      setIsAuthenticated(true);
+      setAuthError('Тестовый режим (без Telegram)');
     }
   };
 
@@ -1793,9 +1800,12 @@ const DatingApp = () => {
                 <p><strong>Version:</strong> {getTelegramWebApp()?.version || 'Неизвестно'}</p>
                 <p><strong>InitData есть:</strong> {getTelegramWebApp()?.initData ? 'Да ✅' : 'Нет ❌'}</p>
                 <p><strong>User данные:</strong> {getTelegramWebApp()?.initDataUnsafe?.user ? 'Есть ✅' : 'Нет ❌'}</p>
+                <p><strong>User ID:</strong> {getTelegramWebApp()?.initDataUnsafe?.user?.id || 'Нет'}</p>
                 <p><strong>Ошибка авторизации:</strong> {authError || 'Нет'}</p>
                 <p><strong>Режим Hatch:</strong> {isHatchEnvironment ? 'Да ✅' : 'Нет ❌'}</p>
                 <p><strong>Username:</strong> {currentUser?.username || 'Не указан'}</p>
+                <p><strong>URL:</strong> {window.location.href}</p>
+                <p><strong>Домен:</strong> {window.location.hostname}</p>
               </div>
               <button
                 onClick={() => {
@@ -2293,9 +2303,85 @@ const DatingApp = () => {
     </>
   );
 };
+        
+        // Telegram WebApp API integration
+        const getTelegramWebApp = () => {
+          return window.Telegram?.WebApp;
+        };
 
-export default DatingApp;
+        // Вынесем ChatInput полностью за пределы основного компонента
+        const ChatInput = React.memo(({ matchId, onSendMessage }) => {
+          const [message, setMessage] = useState('');
+          
+          const handleSend = useCallback(() => {
+            const messageText = message.trim();
+            console.log('🔄 ChatInput handleSend:', { matchId, message: messageText });
+            
+            if (messageText) {
+              console.log('✅ Отправляем сообщение:', messageText);
+              onSendMessage(matchId, messageText);
+              setMessage('');
+              console.log('🧹 Очищен input');
+            } else {
+              console.log('❌ Пустое сообщение, не отправляем');
+            }
+          }, [matchId, message, onSendMessage]);
 
+          const handleKeyPress = useCallback((e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSend();
+            }
+          }, [handleSend]);
+
+          const handleChange = useCallback((e) => {
+            setMessage(e.target.value);
+          }, []);
+
+          return (
+            <div className="bg-white p-4 border-t border-gray-100">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Напишите сообщение..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-pink-500"
+                  autoComplete="off"
+                />
+                <button
+                  onClick={handleSend}
+                  className="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          );
+        });
+
+        // Основной компонент
+        const DatingApp = () => {
+          // ВАШ ВЕСЬ КОД КОМПОНЕНТА БЕЗ ИЗМЕНЕНИЙ
+          // НО ЗАМЕНИТЕ:
+          // const { useStoredState } = hatch; 
+          // НА ОБЫЧНЫЕ useState
+          
+          const [currentView, setCurrentView] = useState('discover');
+          const [currentProfile, setCurrentProfile] = useState(0);
+          // И ТАК ДАЛЕЕ...
+          
+          // ВЕСЬ ОСТАЛЬНОЙ КОД ВАШЕГО КОМПОНЕНТА
+          
+          return (
+            // ВАШ JSX КОД
+          );
+        };
+
+        // 👇 В САМОМ КОНЦЕ ДОБАВЬТЕ ЭТУ СТРОЧКУ:
         ReactDOM.render(<DatingApp />, document.getElementById('root'));
     </script>
 </body>
