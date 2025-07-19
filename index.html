@@ -39,6 +39,12 @@
         const { useState, useEffect, useCallback } = React;
 
 
+import React, { useState, useEffect, useCallback } from 'react';
+
+// Проверяем, работаем ли мы в Hatch
+const isHatchEnvironment = typeof hatch !== 'undefined';
+const { useStoredState } = isHatchEnvironment ? hatch : { useStoredState: (key, defaultValue) => React.useState(defaultValue) };
+
 // Telegram WebApp API integration
 const getTelegramWebApp = () => {
   return window.Telegram?.WebApp;
@@ -204,6 +210,24 @@ const DatingApp = () => {
     try {
       console.log('🔐 Начинаем авторизацию пользователя...');
 
+      // Проверяем, работаем ли в Hatch
+      if (isHatchEnvironment) {
+        console.log('🎨 Обнаружена среда Hatch - используем тестовый режим');
+        const hatchTestUser = {
+          id: 12345678,
+          first_name: 'Тестовый',
+          last_name: 'Пользователь',
+          username: 'hatch_test',
+          language_code: 'ru',
+          is_premium: false
+        };
+        
+        setUserProfile(hatchTestUser);
+        setIsAuthenticated(true);
+        setAuthError('Тестовый режим Hatch');
+        return;
+      }
+
       // Получаем initData из Telegram SDK
       let initDataRaw = '';
       
@@ -293,35 +317,45 @@ const DatingApp = () => {
       }
     }
   };
-  // КАРДИНАЛЬНОЕ РЕШЕНИЕ: useState + ручное управление localStorage
-  const [likedProfiles, setLikedProfiles] = useState(() => {
-    try {
-      const saved = localStorage.getItem('likedProfiles');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+
+  // Проверяем, является ли пользователь администратором
+  const isAdmin = userProfile?.username === 'lukichevdsgn' || isHatchEnvironment;
+
+  // Управление состоянием: useStoredState для Hatch, localStorage для остальных
+  const [likedProfiles, setLikedProfiles] = isHatchEnvironment 
+    ? useStoredState('likedProfiles', [])
+    : useState(() => {
+        try {
+          const saved = localStorage.getItem('likedProfiles');
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      });
   
-  const [matches, setMatches] = useState(() => {
-    try {
-      const saved = localStorage.getItem('matches');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [matches, setMatches] = isHatchEnvironment
+    ? useStoredState('matches', [])
+    : useState(() => {
+        try {
+          const saved = localStorage.getItem('matches');
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      });
+
   const [selectedMatch, setSelectedMatch] = useState(null);
-  const [chatMessages, setChatMessages] = useState({}); // Убираем useStoredState - используем обычный useState
+  const [chatMessages, setChatMessages] = isHatchEnvironment 
+    ? useStoredState('chatMessages', {})
+    : useState({});
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [deletingChat, setDeletingChat] = useState(null);
   
-  // Убираем ref - используем функциональные обновления состояния
-
-  
   // Состояние для реального времени
-  const [messageUpdate, setMessageUpdate] = useState(0); // Убираем useStoredState
+  const [messageUpdate, setMessageUpdate] = isHatchEnvironment
+    ? useStoredState('messageUpdate', 0)
+    : useState(0);
   
   // Состояние для полноэкранного окна совпадения
   const [showFullScreenMatch, setShowFullScreenMatch] = useState(null);
@@ -352,9 +386,9 @@ const DatingApp = () => {
     bio: "Frontend разработчик, путешественник, любитель кофе и хорошей музыки",
     interests: ["Программирование", "Путешествия", "Кофе", "Музыка", "Спорт"],
     photos: [
-      "keys/user_photo1?prompt=Young%20professional%20man%20portrait%20casual%20style",
-      "keys/user_photo2?prompt=Man%20working%20on%20laptop%20modern%20office",
-      "keys/user_photo3?prompt=Man%20traveling%20mountain%20landscape"
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&h=400&fit=crop&crop=face",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face"
     ]
   } : null;
 
@@ -369,10 +403,10 @@ const DatingApp = () => {
       bio: "Ищу родственную душу 💫",
       interests: ["Православие", "Рыбы", "162см", "Среднее", "Нет", "Нейтрально"],
       photos: [
-        "keys/ekaterina_1?prompt=Beautiful%20young%20brunette%20woman%2023%20years%20old%20elegant%20portrait%20natural%20makeup%20soft%20lighting",
-        "keys/ekaterina_2?prompt=Young%20brunette%20woman%20in%20orthodox%20church%20praying%20peaceful%20spiritual%20atmosphere",
-        "keys/ekaterina_3?prompt=Portrait%20young%20woman%20reading%20book%20cozy%20cafe%20intellectual%20style",
-        "keys/ekaterina_4?prompt=Young%20woman%20in%20nature%20park%20casual%20dress%20gentle%20smile%20golden%20hour"
+        "https://images.unsplash.com/photo-1494790108755-2616c5e2d06d?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop&crop=face"
       ],
       job: "Дизайнер",
       education: "МГУ",
@@ -387,10 +421,10 @@ const DatingApp = () => {
       bio: "Люблю жизнь во всех её проявлениях ✨",
       interests: ["Фотография", "Йога", "Путешествия", "Мода", "Искусство"],
       photos: [
-        "keys/anna_1?prompt=Beautiful%20young%20blonde%20woman%2025%20years%20old%20bohemian%20style%20photographer%20creative%20portrait",
-        "keys/anna_2?prompt=Young%20blonde%20woman%20doing%20yoga%20pose%20peaceful%20studio%20athletic%20wear",
-        "keys/anna_3?prompt=Young%20woman%20traveling%20mountain%20landscape%20backpack%20adventure%20style",
-        "keys/anna_4?prompt=Portrait%20young%20woman%20fashion%20photography%20artistic%20lighting%20modern%20style"
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=400&h=600&fit=crop&crop=face"
       ],
       job: "Фотограф",
       education: "Школа фотографии",
@@ -405,10 +439,10 @@ const DatingApp = () => {
       bio: "Творческая натура в поисках вдохновения 🎨",
       interests: ["Искусство", "Дизайн", "Кино", "Живопись", "Музыка"],
       photos: [
-        "keys/maria_1?prompt=Beautiful%20young%20redhead%20woman%2026%20years%20old%20artistic%20creative%20style%20warm%20lighting",
-        "keys/maria_2?prompt=Young%20redhead%20woman%20in%20art%20studio%20painting%20canvas%20creative%20workspace",
-        "keys/maria_3?prompt=Creative%20young%20woman%20graphic%20design%20workspace%20modern%20office%20artistic",
-        "keys/maria_4?prompt=Portrait%20young%20artist%20woman%20gallery%20setting%20sophisticated%20artistic%20atmosphere"
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1494790108755-2616c5e2d06d?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=600&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=600&fit=crop&crop=face"
       ],
       job: "Художница",
       education: "Художественная академия",
@@ -452,26 +486,6 @@ const DatingApp = () => {
     // Обновляем счетчики
     setMessageUpdate(prev => prev + 1);
     setForceUpdate(prev => prev + 1);
-    
-    // Попытка отправить сообщение на сервер
-    try {
-      await makeAuthenticatedRequest('/api/messages', {
-        method: 'POST',
-        body: JSON.stringify({
-          recipientId: matchId,
-          message: userMessage,
-          timestamp: new Date().toISOString()
-        })
-      });
-      console.log('✅ Сообщение отправлено на сервер');
-      
-      // Отправляем уведомление получателю
-      await sendNotification(matchId, userMessage);
-      
-    } catch (error) {
-      console.log('⚠️ Ошибка отправки сообщения на сервер:', error);
-      // Продолжаем работу в оффлайн режиме
-    }
 
     // Автоответ через 2 секунды (для демо)
     const match = profiles.find(p => p.id === matchId);
@@ -650,117 +664,6 @@ const DatingApp = () => {
     
     console.log('✅ Все чаты очищены');
   }, []);
-
-  // Функция для авторизованных API запросов
-  const makeAuthenticatedRequest = useCallback(async (url, options = {}) => {
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
-
-      // Добавляем токен авторизации если есть
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      } else {
-        const tg = getTelegramWebApp();
-        if (tg) {
-          // Альтернативно: используем initData для каждого запроса
-          try {
-            const { retrieveRawInitData } = await import('@telegram-apps/sdk');
-            const initDataRaw = retrieveRawInitData();
-            headers['Authorization'] = `tma ${initDataRaw}`;
-          } catch (error) {
-            console.log('⚠️ Не удалось получить initData для запроса');
-          }
-        }
-      }
-
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Ошибка сервера' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('❌ Ошибка API запроса:', error);
-      throw error;
-    }
-  }, [authToken]);
-
-  // Функция для сохранения профиля на сервере
-  const saveUserProfile = useCallback(async (profileData) => {
-    try {
-      console.log('💾 Сохранение профиля пользователя на сервере...');
-      
-      const result = await makeAuthenticatedRequest('/api/profile', {
-        method: 'PUT',
-        body: JSON.stringify(profileData)
-      });
-
-      console.log('✅ Профиль сохранен на сервере:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ Ошибка сохранения профиля:', error);
-      // Fallback: сохраняем локально
-      localStorage.setItem(`user_profile_${userProfile.id}`, JSON.stringify(profileData));
-      throw error;
-    }
-  }, [makeAuthenticatedRequest, userProfile]);
-
-  // Функция для получения совпадений с сервера
-  const fetchMatches = useCallback(async () => {
-    try {
-      console.log('🔍 Получение совпадений с сервера...');
-      
-      const result = await makeAuthenticatedRequest('/api/matches');
-      
-      console.log('✅ Совпадения получены с сервера:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ Ошибка получения совпадений:', error);
-      // Fallback: используем локальные данные
-      return [];
-    }
-  }, [makeAuthenticatedRequest]);
-
-  // Функция для отправки уведомления через сервер
-  const sendNotification = useCallback(async (recipientId, message) => {
-    try {
-      console.log('📤 Отправка уведомления через сервер...');
-      
-      const result = await makeAuthenticatedRequest('/api/notifications', {
-        method: 'POST',
-        body: JSON.stringify({
-          recipientId,
-          message,
-          type: 'chat_message'
-        })
-      });
-
-      console.log('✅ Уведомление отправлено через сервер');
-      return result;
-    } catch (error) {
-      console.error('❌ Ошибка отправки уведомления:', error);
-      
-      // Fallback: отправляем через WebApp API
-      const tg = getTelegramWebApp();
-      if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify({
-          type: 'notification',
-          recipientId,
-          message,
-          from: currentUser
-        }));
-        console.log('📱 Уведомление отправлено через Telegram WebApp API');
-      }
-    }
-  }, [makeAuthenticatedRequest, currentUser]);
 
   // ПРОСТАЯ функция удаления чата
   const deleteChat = useCallback((matchId) => {
@@ -1068,27 +971,28 @@ const DatingApp = () => {
     }
   }, [isDragging, startPos, dragOffset]);
 
-  // Используем функциональные обновления состояния вместо ref
-
-  // Автосохранение для matches
+  // Автосохранение только для не-Hatch окружений
   useEffect(() => {
-    try {
-      localStorage.setItem('matches', JSON.stringify(matches));
-      console.log('💾 Автосохранение matches:', matches.length);
-    } catch (e) {
-      console.log('⚠️ Ошибка автосохранения matches:', e);
+    if (!isHatchEnvironment) {
+      try {
+        localStorage.setItem('matches', JSON.stringify(matches));
+        console.log('💾 Автосохранение matches:', matches.length);
+      } catch (e) {
+        console.log('⚠️ Ошибка автосохранения matches:', e);
+      }
     }
-  }, [matches]);
+  }, [matches, isHatchEnvironment]);
   
-  // Автосохранение для likedProfiles  
   useEffect(() => {
-    try {
-      localStorage.setItem('likedProfiles', JSON.stringify(likedProfiles));
-      console.log('💾 Автосохранение likedProfiles:', likedProfiles.length);
-    } catch (e) {
-      console.log('⚠️ Ошибка автосохранения likedProfiles:', e);
+    if (!isHatchEnvironment) {
+      try {
+        localStorage.setItem('likedProfiles', JSON.stringify(likedProfiles));
+        console.log('💾 Автосохранение likedProfiles:', likedProfiles.length);
+      } catch (e) {
+        console.log('⚠️ Ошибка автосохранения likedProfiles:', e);
+      }
     }
-  }, [likedProfiles]);
+  }, [likedProfiles, isHatchEnvironment]);
 
   // Отслеживание изменений сообщений для реального времени
   useEffect(() => {
@@ -1296,8 +1200,6 @@ const DatingApp = () => {
             </div>
           )}
 
-
-
           {/* Информация внизу карточки - КЛИКАБЕЛЬНАЯ ЗОНА */}
           <div 
             className="absolute bottom-0 left-0 right-0 p-6 text-white cursor-pointer z-40"
@@ -1445,7 +1347,7 @@ const DatingApp = () => {
               className="flex items-center flex-1 hover:bg-gray-50 p-2 rounded-lg transition-colors"
             >
               <img 
-                src={selectedMatch.photos && selectedMatch.photos[0] ? selectedMatch.photos[0] : 'keys/default_avatar?prompt=Beautiful%20young%20woman%20portrait%20default%20avatar'}
+                src={selectedMatch.photos && selectedMatch.photos[0] ? selectedMatch.photos[0] : 'https://images.unsplash.com/photo-1494790108755-2616c5e2d06d?w=100&h=100&fit=crop&crop=face'}
                 alt={selectedMatch.name}
                 className="w-10 h-10 rounded-full object-cover border-2 border-pink-200 mr-3"
               />
@@ -1594,7 +1496,7 @@ const DatingApp = () => {
                     className="flex items-center flex-1"
                   >
                     <img 
-                      src={match.photos && match.photos[0] ? match.photos[0] : 'keys/default_avatar?prompt=Beautiful%20young%20woman%20portrait%20default%20avatar'}
+                      src={match.photos && match.photos[0] ? match.photos[0] : 'https://images.unsplash.com/photo-1494790108755-2616c5e2d06d?w=100&h=100&fit=crop&crop=face'}
                       alt={match.name}
                       className="w-14 h-14 rounded-full object-cover border-2 border-pink-200"
                     />
@@ -1869,46 +1771,60 @@ const DatingApp = () => {
         <div className="bg-white p-4 shadow-sm border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">Мой профиль</h2>
           <p className="text-sm text-gray-500">ID: {currentUser.telegramId}</p>
+          {isAdmin && (
+            <p className="text-xs text-red-500">
+              {isHatchEnvironment ? '🎨 Hatch тестовый режим' : '👑 Режим администратора'}
+            </p>
+          )}
         </div>
         
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Отладочная информация */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center mb-2">
-              <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span className="font-semibold text-blue-800">Отладочная информация</span>
+          {/* Отладочная информация - только для админа или неавторизированных */}
+          {(isAdmin || !isAuthenticated) && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center mb-2">
+                <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span className="font-semibold text-blue-800">
+                  {isHatchEnvironment ? '🎨 Отладочная информация (Hatch)' : '👑 Отладочная информация (только для админа)'}
+                </span>
+              </div>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p><strong>Telegram доступен:</strong> {getTelegramWebApp() ? 'Да ✅' : 'Нет ❌'}</p>
+                <p><strong>Platform:</strong> {getTelegramWebApp()?.platform || 'Неизвестно'}</p>
+                <p><strong>Version:</strong> {getTelegramWebApp()?.version || 'Неизвестно'}</p>
+                <p><strong>InitData есть:</strong> {getTelegramWebApp()?.initData ? 'Да ✅' : 'Нет ❌'}</p>
+                <p><strong>User данные:</strong> {getTelegramWebApp()?.initDataUnsafe?.user ? 'Есть ✅' : 'Нет ❌'}</p>
+                <p><strong>Ошибка авторизации:</strong> {authError || 'Нет'}</p>
+                <p><strong>Режим Hatch:</strong> {isHatchEnvironment ? 'Да ✅' : 'Нет ❌'}</p>
+                <p><strong>Username:</strong> {currentUser?.username || 'Не указан'}</p>
+              </div>
+              <button
+                onClick={() => {
+                  const tg = getTelegramWebApp();
+                  const debugInfo = {
+                    telegramAvailable: !!tg,
+                    platform: tg?.platform,
+                    version: tg?.version,
+                    initData: !!tg?.initData,
+                    user: tg?.initDataUnsafe?.user,
+                    currentURL: window.location.href,
+                    userAgent: navigator.userAgent,
+                    isHatchEnvironment: isHatchEnvironment,
+                    isAdmin: isAdmin,
+                    username: currentUser?.username
+                  };
+                  console.log('🔍 ПОЛНАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ:', debugInfo);
+                  navigator.clipboard?.writeText(JSON.stringify(debugInfo, null, 2));
+                  alert('Отладочная информация скопирована в консоль и буфер обмена');
+                }}
+                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+              >
+                Скопировать отладочную информацию
+              </button>
             </div>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p><strong>Telegram доступен:</strong> {getTelegramWebApp() ? 'Да ✅' : 'Нет ❌'}</p>
-              <p><strong>Platform:</strong> {getTelegramWebApp()?.platform || 'Неизвестно'}</p>
-              <p><strong>Version:</strong> {getTelegramWebApp()?.version || 'Неизвестно'}</p>
-              <p><strong>InitData есть:</strong> {getTelegramWebApp()?.initData ? 'Да ✅' : 'Нет ❌'}</p>
-              <p><strong>User данные:</strong> {getTelegramWebApp()?.initDataUnsafe?.user ? 'Есть ✅' : 'Нет ❌'}</p>
-              <p><strong>Ошибка авторизации:</strong> {authError || 'Нет'}</p>
-            </div>
-            <button
-              onClick={() => {
-                const tg = getTelegramWebApp();
-                const debugInfo = {
-                  telegramAvailable: !!tg,
-                  platform: tg?.platform,
-                  version: tg?.version,
-                  initData: !!tg?.initData,
-                  user: tg?.initDataUnsafe?.user,
-                  currentURL: window.location.href,
-                  userAgent: navigator.userAgent
-                };
-                console.log('🔍 ПОЛНАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ:', debugInfo);
-                navigator.clipboard?.writeText(JSON.stringify(debugInfo, null, 2));
-                alert('Отладочная информация скопирована в консоль и буфер обмена');
-              }}
-              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-            >
-              Скопировать отладочную информацию
-            </button>
-          </div>
+          )}
 
           {/* Информация об авторизации */}
           <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
@@ -1916,12 +1832,14 @@ const DatingApp = () => {
               <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <span className="font-semibold text-green-800">Авторизован через Telegram</span>
+              <span className="font-semibold text-green-800">
+                {isHatchEnvironment ? 'Авторизован в Hatch' : 'Авторизован через Telegram'}
+              </span>
             </div>
             <div className="text-sm text-green-700 space-y-1">
               <p><strong>Имя:</strong> {currentUser.firstName} {currentUser.lastName}</p>
-              {currentUser.username && <p><strong>Username:</strong> @{currentUser.username}</p>}
-              <p><strong>Язык:</strong> {currentUser.languageCode?.toUpperCase() || 'RU'}</p>
+              {isAdmin && currentUser.username && <p><strong>Username:</strong> @{currentUser.username}</p>}
+              {isAdmin && <p><strong>Язык:</strong> {currentUser.languageCode?.toUpperCase() || 'RU'}</p>}
               {currentUser.isPremium && (
                 <p className="flex items-center">
                   <span className="text-yellow-600 mr-1">⭐</span>
@@ -1974,17 +1892,24 @@ const DatingApp = () => {
               Редактировать профиль
             </button>
             
-            <button 
-              onClick={() => {
-                if (window.confirm('Вы уверены, что хотите удалить ВСЕ чаты и сообщения? Это действие нельзя отменить.')) {
-                  clearAllChats();
-                  alert('Все чаты и данные очищены');
-                }
-              }}
-              className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
-            >
-              🧹 Очистить все чаты
-            </button>
+            {/* Кнопка очистки чатов - только для админа */}
+            {isAdmin && (
+              <button 
+                onClick={() => {
+                  const confirmMessage = isHatchEnvironment 
+                    ? '🎨 HATCH: Вы уверены, что хотите удалить ВСЕ чаты и сообщения? Это действие нельзя отменить.'
+                    : '🔧 АДМИН: Вы уверены, что хотите удалить ВСЕ чаты и сообщения? Это действие нельзя отменить.';
+                    
+                  if (window.confirm(confirmMessage)) {
+                    clearAllChats();
+                    alert('Все чаты и данные очищены');
+                  }
+                }}
+                className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors mb-3"
+              >
+                {isHatchEnvironment ? '🎨 Очистить все чаты (Hatch)' : '👑 Очистить все чаты (админ)'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -2003,35 +1928,43 @@ const DatingApp = () => {
         </p>
         {authError && (
           <div className="mt-4 p-3 bg-red-500/20 rounded-lg">
-            <p className="text-sm text-red-100">⚠️ {authError}</p>
+            <p className="text-sm text-red-100">
+              ⚠️ {authError.includes('Режим разработки') || authError.includes('Тестовый режим') 
+                ? 'Приложение работает в демо-режиме' 
+                : 'Ошибка подключения к серверу'}
+            </p>
             <div className="space-y-2">
               <button
                 onClick={() => authenticateUser()}
                 className="w-full px-4 py-2 bg-white/20 rounded-lg text-sm hover:bg-white/30 transition-colors"
               >
-                Повторить авторизацию
+                Повторить подключение
               </button>
-              <button
-                onClick={() => {
-                  console.log('🔄 Принудительная проверка Telegram данных:');
-                  const tg = getTelegramWebApp();
-                  if (tg) {
-                    console.log('✅ WebApp найден:', tg);
-                    console.log('📱 initDataUnsafe:', tg.initDataUnsafe);
-                    console.log('👤 User:', tg.initDataUnsafe?.user);
-                    if (tg.initDataUnsafe?.user) {
-                      alert(`Найден пользователь: ${tg.initDataUnsafe.user.first_name} (ID: ${tg.initDataUnsafe.user.id})`);
+              
+              {/* Техническую кнопку показываем только админу */}
+              {userProfile?.username === 'lukichevdsgn' && (
+                <button
+                  onClick={() => {
+                    console.log('🔄 Принудительная проверка Telegram данных:');
+                    const tg = getTelegramWebApp();
+                    if (tg) {
+                      console.log('✅ WebApp найден:', tg);
+                      console.log('📱 initDataUnsafe:', tg.initDataUnsafe);
+                      console.log('👤 User:', tg.initDataUnsafe?.user);
+                      if (tg.initDataUnsafe?.user) {
+                        alert(`Найден пользователь: ${tg.initDataUnsafe.user.first_name} (ID: ${tg.initDataUnsafe.user.id})`);
+                      } else {
+                        alert('Пользователь не найден. Откройте приложение через Telegram бота.');
+                      }
                     } else {
-                      alert('Пользователь не найден. Откройте приложение через Telegram бота.');
+                      alert('Telegram WebApp не найден. Откройте в Telegram.');
                     }
-                  } else {
-                    alert('Telegram WebApp не найден. Откройте в Telegram.');
-                  }
-                }}
-                className="w-full px-4 py-2 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors"
-              >
-                Проверить Telegram
-              </button>
+                  }}
+                  className="w-full px-4 py-2 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors"
+                >
+                  👑 Проверить Telegram (админ)
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -2363,6 +2296,8 @@ const DatingApp = () => {
     </>
   );
 };
+
+export default DatingApp;
 
         ReactDOM.render(<DatingApp />, document.getElementById('root'));
     </script>
